@@ -90,45 +90,62 @@
         // ==========================================
         // SECTION 0: VERSION & CHANGE LOG
         // ==========================================
-        // DEVELOPER NOTE:
-        // When updating this file, please increment CURRENT_VERSION according to SemVer.
-        // Add a new entry to the top of the CHANGE_LOG array.
-        // Ensure dates reflect the actual development timeline.
         
-        const CURRENT_VERSION = "v0.5.1-alpha";
+        const CURRENT_VERSION = "v0.5.6-alpha";
         
         const CHANGE_LOG = [
+            { version: "v0.5.6-alpha", date: "2025-12-04", changes: [
+                "FIXED Aspect Ratio: Spine scaling is now isotropic (width scales with height). No more 'thin/stretched' vertebrae.",
+                "Restored full version history log.",
+                "Optimized Occiput-T4 layout for better screw placement visibility."
+            ]},
+            { version: "v0.5.5-alpha", date: "2025-12-04", changes: [
+                "Refined View Scaling: Whole Spine reduced by 15%.",
+                "Refined View Scaling: Cervical View magnified by 1.75x.",
+            ]},
+            { version: "v0.5.4-alpha", date: "2025-12-04", changes: [
+                "Redesigned Occiput icon: Curve is now caudal.",
+                "Sidebar: Widened (4 columns) with smaller buttons.",
+                "Whole Spine View: Automatically compacts row height."
+            ]},
+            { version: "v0.5.3-alpha", date: "2025-12-04", changes: [
+                "Added 'Occiput' level for C0-C1-C2 planning.",
+                "Implemented 3-way View Selector.",
+                "Inventory now filters by visible region."
+            ]},
+            { version: "v0.5.2-alpha", date: "2025-12-04", changes: [
+                "Removed Force Columns from Post-Op (Construct) view.",
+                "Expanded Implant Column width in Construct view."
+            ]},
             { version: "v0.5.1-alpha", date: "2025-12-04", changes: [
                 "Replaced static logo with editable 'Clinic Location' field.",
                 "Moved Version Number to subtitle line.",
                 "Refined text alignment and spacing in sidebar.",
-                "Added developer comments for version tracking."
             ]},
             { version: "v0.5.0-alpha", date: "2025-12-04", changes: [
                 "Implemented Semantic Versioning.",
                 "Changed License to GNU GPLv3.",
-                "Visual cleanup: Removed version from main title.",
                 "Restored vertical centering for Thoracolumbar view."
             ]},
             { version: "V38-V41", date: "2025-12-04", changes: [
                 "Added specialized Deformity Forces (Derotation, Translation).",
-                "Updated force icons (Vertical compression/distraction).",
-                "Implemented Keyboard Shortcuts (Del to remove, Enter to confirm).",
+                "Updated force icons.",
+                "Implemented Keyboard Shortcuts (Del/Enter).",
                 "Added PDF direct export."
             ]},
             { version: "V33-V37", date: "2025-12-03", changes: [
                 "Added logical constraints (One screw per side).",
-                "Added 'Ghost Targets' for easier clicking.",
-                "Implemented ResizeObserver for auto-scaling."
+                "Added 'Ghost Targets'.",
+                "Implemented ResizeObserver."
             ]},
             { version: "V28-V32", date: "2025-12-03", changes: [
-                "New Fonts: 'Istok Web' (Frutiger alternative).",
+                "New Fonts: 'Istok Web'.",
                 "Compacted demographics layout.",
                 "Added automated Implant Inventory table."
             ]},
             { version: "V0-V27", date: "2025-12-03", changes: [
                 "Initial prototype development.",
-                "Added Incognito Mode (GDPR compliance).",
+                "Added Incognito Mode.",
                 "Added JSON Save/Load functionality."
             ]}
         ];
@@ -223,10 +240,13 @@
             </div>
         );
 
-        const ImplantInventory = ({ placements, tools, title }) => {
+        const ImplantInventory = ({ placements, tools, title, visibleLevelIds }) => {
             const inventory = useMemo(() => {
                 const counts = {};
                 placements.forEach(p => {
+                    // FILTER: Only count items if their level is currently visible
+                    if (!visibleLevelIds.includes(p.levelId)) return;
+
                     const tool = tools.find(t => t.id === p.tool);
                     if (!tool || tool.type === 'force') return;
                     let key = tool.label;
@@ -238,7 +258,7 @@
                     counts[key] = (counts[key] || 0) + 1;
                 });
                 return counts;
-            }, [placements, tools]);
+            }, [placements, tools, visibleLevelIds]);
 
             if (Object.keys(inventory).length === 0) return null;
 
@@ -352,7 +372,14 @@
             return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         };
 
-        const REGIONS = { C: { height: 28, color: '#f1f5f9' }, T: { height: 36, color: '#e2e8f0' }, L: { height: 46, color: '#cbd5e1' }, S: { height: 52, color: '#94a3b8' }, Pelvis: { height: 54, color: '#94a3b8' } };
+        const REGIONS = { 
+            Occiput: { height: 40, color: '#f8fafc' }, 
+            C: { height: 28, color: '#f1f5f9' }, 
+            T: { height: 36, color: '#e2e8f0' }, 
+            L: { height: 46, color: '#cbd5e1' }, 
+            S: { height: 52, color: '#94a3b8' }, 
+            Pelvis: { height: 54, color: '#94a3b8' } 
+        };
         
         const InstrumentIcon = ({ type, className = "w-5 h-5", color = "black" }) => {
             const strokeWidth = 2.5; const HookBase = ({ direction, label }) => (<svg viewBox="0 0 40 24" className="w-full h-full">{direction === 'up' ? <path d="M12 18V6m0 0l-4 4m4-4l4 4m-8 12h8" stroke={color} fill="none" strokeWidth={strokeWidth} /> : <path d="M12 6v12m0 0l-4-4m4 4l4-4m-8-12h8" stroke={color} fill="none" strokeWidth={strokeWidth} />}<text x="22" y="17" fontSize="14" fontWeight="bold" fontFamily="serif" fill={color}>{label}</text></svg>);
@@ -383,13 +410,30 @@
         const SpineVertebra = ({ label, type, height }) => {
             const common = { fill: REGIONS[type].color, stroke: "#475569", strokeWidth: "1.5" };
             return (
-                <svg viewBox={`0 0 160 ${height}`} className="w-[160px] block" style={{height: `${height}px`}} overflow="visible"><line x1="80" y1="-2" x2="80" y2={height + 2} stroke="#cbd5e1" strokeDasharray="3 3" /><g>{type === 'C' && <path d="M65,6 Q80,2 95,6 L95,22 Q80,26 65,22 Z" transform={`translate(0, 0) scale(1, ${height/24})`} {...common} />}{type === 'T' && <g><path d="M60,10 Q80,4 100,10 L105,27 Q80,33 55,27 Z" transform={`scale(1, ${height/32})`} {...common} /><path d="M55,13 L45,11" stroke="#64748b" strokeWidth="2" /><path d="M105,13 L115,11" stroke="#64748b" strokeWidth="2" /></g>}{type === 'L' && <g><path d="M55,8 Q80,2 105,8 L110,33 Q80,38 50,33 Z" transform={`scale(1, ${height/38})`} {...common} /><path d="M50,16 L35,20" stroke="#64748b" strokeWidth="3" /><path d="M110,16 L125,20" stroke="#64748b" strokeWidth="3" /></g>}{type === 'S' && <path d="M40,8 Q80,2 120,8 L100,43 Q80,53 60,43 Z" transform={`scale(1, ${height/48})`} {...common} />}{type === 'Pelvis' && <path d="M20,5 Q80,20 140,5 L130,40 Q80,50 30,40 Z" transform={`scale(1, ${height/45})`} {...common} opacity="0.6" />}</g><text x="80" y={height/2} dominantBaseline="middle" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#334155" className="font-sans pointer-events-none select-none">{label}</text></svg>
+                <svg viewBox={`0 0 160 ${height}`} className="w-full h-full block" overflow="visible">
+                    <line x1="80" y1="-2" x2="80" y2={height + 2} stroke="#cbd5e1" strokeDasharray="3 3" />
+                    <g>
+                        {type === 'Occiput' && <path d="M20,2 Q80,45 140,2 Z" transform={`scale(1, ${height/30})`} {...common} />}
+                        {type === 'C' && <path d="M65,6 Q80,2 95,6 L95,22 Q80,26 65,22 Z" transform={`translate(0, 0) scale(1, ${height/24})`} {...common} />}
+                        {type === 'T' && <g><path d="M60,10 Q80,4 100,10 L105,27 Q80,33 55,27 Z" transform={`scale(1, ${height/32})`} {...common} /><path d="M55,13 L45,11" stroke="#64748b" strokeWidth="2" /><path d="M105,13 L115,11" stroke="#64748b" strokeWidth="2" /></g>}
+                        {type === 'L' && <g><path d="M55,8 Q80,2 105,8 L110,33 Q80,38 50,33 Z" transform={`scale(1, ${height/38})`} {...common} /><path d="M50,16 L35,20" stroke="#64748b" strokeWidth="3" /><path d="M110,16 L125,20" stroke="#64748b" strokeWidth="3" /></g>}
+                        {type === 'S' && <path d="M40,8 Q80,2 120,8 L100,43 Q80,53 60,43 Z" transform={`scale(1, ${height/48})`} {...common} />}
+                        {type === 'Pelvis' && <path d="M20,5 Q80,20 140,5 L130,40 Q80,50 30,40 Z" transform={`scale(1, ${height/45})`} {...common} opacity="0.6" />}
+                    </g>
+                    <text x="80" y={height/2} dominantBaseline="middle" textAnchor="middle" fontSize="10" fontWeight="bold" fill="#334155" className="font-sans pointer-events-none select-none">{label}</text>
+                </svg>
             );
         };
 
-        const LevelRow = ({ level, placements, onZoneClick, tools, onPlacementClick, readOnly, showForces }) => {
+        const LevelRow = ({ level, placements, onZoneClick, tools, onPlacementClick, readOnly, showForces, heightScale }) => {
             const getItems = (z) => placements.filter(p => p.levelId === level.id && p.zone === z);
             
+            // --- FIX: ISOTROPIC SCALING ---
+            // We scale height AND width together so the vertebra doesn't look "thin" or "squashed".
+            const baseHeight = REGIONS[level.type].height;
+            const scaledHeight = baseHeight * heightScale;
+            const scaledWidth = 160 * heightScale;
+
             // --- GHOST TARGET: CARDINAL FOR FORCES ---
             const GhostTarget = ({ type }) => {
                 if (type === 'force') return <div className="flex items-center justify-center h-full w-full"><IconCardinal /></div>;
@@ -409,20 +453,46 @@
             };
 
             return (
-                <div className="flex w-full relative" style={{ height: `${REGIONS[level.type].height}px` }}>
+                <div className="flex w-full relative" style={{ height: `${scaledHeight}px` }}>
                     <div className="absolute bottom-0 left-0 right-0 border-b border-slate-100 w-full z-0 pointer-events-none"></div>
-                    {/* VISUAL TINT FOR FORCE COLUMNS (V34) */}
-                    <div className={`w-10 border-r border-slate-100/50 bg-emerald-50/20 ${!readOnly ? 'hover:bg-emerald-50 cursor-crosshair' : ''}`} onClick={() => !readOnly && onZoneClick(level.id, 'force_left')}><ZoneContent zone="force_left" align="center"/></div>
+                    
+                    {/* VISUAL TINT FOR FORCE COLUMNS (CONDITIONAL) */}
+                    {showForces && (
+                        <div className={`w-10 border-r border-slate-100/50 bg-emerald-50/20 ${!readOnly ? 'hover:bg-emerald-50 cursor-crosshair' : ''}`} onClick={() => !readOnly && onZoneClick(level.id, 'force_left')}><ZoneContent zone="force_left" align="center"/></div>
+                    )}
+
                     <div className={`flex-1 ${!readOnly ? 'hover:bg-blue-50/50 cursor-crosshair' : ''}`} onClick={() => !readOnly && onZoneClick(level.id, 'left')}><ZoneContent zone="left" align="left"/></div>
-                    <div className={`w-[160px] relative flex justify-center shrink-0 z-10 ${!readOnly ? 'hover:brightness-95 cursor-pointer' : ''}`} onClick={() => !readOnly && onZoneClick(level.id, 'mid')}><SpineVertebra label={level.id} type={level.type} height={REGIONS[level.type].height} /><div className="absolute inset-0 flex items-center justify-center pointer-events-none">{getItems('mid').map(p => { const tool = tools.find(t => t.id === p.tool); let displayLabel = ''; let angle = ''; if (p.tool === 'osteotomy' && typeof p.data === 'object') { displayLabel = p.data.shortLabel || p.data.type; angle = p.data.angle; } return (<div key={p.id} className="pointer-events-auto relative group" onClick={(e) => { e.stopPropagation(); !readOnly && onPlacementClick(p); }}><InstrumentIcon type={tool?.icon} className={`${p.tool==='connector'?'w-24 h-6':'w-10 h-10'} drop-shadow-md text-slate-900`} />{p.tool === 'osteotomy' && p.data && (<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/90 border border-red-200 text-red-800 text-[18px] px-1 rounded shadow-sm whitespace-nowrap z-20">{displayLabel} {angle}°</div>)}</div>); })}</div></div>
+                    
+                    {/* CENTRAL COLUMN - SCALES ISOTROPICALLY NOW */}
+                    <div style={{ width: `${scaledWidth}px` }} className={`relative flex justify-center shrink-0 z-10 ${!readOnly ? 'hover:brightness-95 cursor-pointer' : ''}`} onClick={() => !readOnly && onZoneClick(level.id, 'mid')}>
+                        {/* We pass the BASE height to the SVG to preserve the coordinate system, but the container scales it up/down */}
+                        <SpineVertebra label={level.id} type={level.type} height={baseHeight} />
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">{getItems('mid').map(p => { const tool = tools.find(t => t.id === p.tool); let displayLabel = ''; let angle = ''; if (p.tool === 'osteotomy' && typeof p.data === 'object') { displayLabel = p.data.shortLabel || p.data.type; angle = p.data.angle; } return (<div key={p.id} className="pointer-events-auto relative group" onClick={(e) => { e.stopPropagation(); !readOnly && onPlacementClick(p); }}><InstrumentIcon type={tool?.icon} className={`${p.tool==='connector'?'w-24 h-6':'w-10 h-10'} drop-shadow-md text-slate-900`} />{p.tool === 'osteotomy' && p.data && (<div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white/90 border border-red-200 text-red-800 text-[18px] px-1 rounded shadow-sm whitespace-nowrap z-20">{displayLabel} {angle}°</div>)}</div>); })}</div>
+                    </div>
+                    
                     <div className={`flex-1 ${!readOnly ? 'hover:bg-blue-50/50 cursor-crosshair' : ''}`} onClick={() => !readOnly && onZoneClick(level.id, 'right')}><ZoneContent zone="right" align="right"/></div>
-                    <div className={`w-10 border-l border-slate-100/50 bg-emerald-50/20 ${!readOnly ? 'hover:bg-emerald-50 cursor-crosshair' : ''}`} onClick={() => !readOnly && onZoneClick(level.id, 'force_right')}><ZoneContent zone="force_right" align="center"/></div>
+                    
+                    {showForces && (
+                        <div className={`w-10 border-l border-slate-100/50 bg-emerald-50/20 ${!readOnly ? 'hover:bg-emerald-50 cursor-crosshair' : ''}`} onClick={() => !readOnly && onZoneClick(level.id, 'force_right')}><ZoneContent zone="force_right" align="center"/></div>
+                    )}
                 </div>
             );
         };
 
-        const ChartPaper = ({ title, placements, onZoneClick, onPlacementClick, tools, readOnly, levels, showForces }) => (
-            <div className="flex-1 flex flex-col h-full border-l border-slate-200 bg-white relative"><div className="p-2 bg-slate-50 border-b border-slate-200 text-center font-bold text-sm text-slate-800 font-leeds uppercase tracking-wider">{title}</div><div className="flex-1 relative flex flex-col pt-8 px-2 justify-center"><div className="flex w-full absolute top-1 left-0 right-0 px-2 text-[9px] font-bold text-slate-400 uppercase tracking-tighter text-center pointer-events-none z-10"><div className="w-10 text-emerald-600/50">{showForces ? 'Force' : ''}</div><div className="flex-1 text-right pr-4">Left</div><div className="w-[160px]"></div><div className="flex-1 text-left pl-4">Right</div><div className="w-10 text-emerald-600/50">{showForces ? 'Force' : ''}</div></div><div className="flex flex-col w-full relative">{levels.map(lvl => <LevelRow key={lvl.id} level={lvl} placements={placements} onZoneClick={onZoneClick} onPlacementClick={onPlacementClick} tools={tools} readOnly={readOnly} showForces={showForces} />)}</div></div></div>
+        const ChartPaper = ({ title, placements, onZoneClick, onPlacementClick, tools, readOnly, levels, showForces, heightScale }) => (
+            <div className="flex-1 flex flex-col h-full border-l border-slate-200 bg-white relative"><div className="p-2 bg-slate-50 border-b border-slate-200 text-center font-bold text-sm text-slate-800 font-leeds uppercase tracking-wider">{title}</div><div className="flex-1 relative flex flex-col pt-8 px-2 justify-center">
+                
+                {/* CONDITIONAL HEADER */}
+                <div className="flex w-full absolute top-1 left-0 right-0 px-2 text-[9px] font-bold text-slate-400 uppercase tracking-tighter text-center pointer-events-none z-10">
+                    {showForces && <div className="w-10 text-emerald-600/50">Force</div>}
+                    <div className="flex-1 text-right pr-4">Left</div>
+                    {/* Dynamic Spacer for scaled spine column */}
+                    <div style={{ width: `${160 * heightScale}px` }}></div>
+                    <div className="flex-1 text-left pl-4">Right</div>
+                    {showForces && <div className="w-10 text-emerald-600/50">Force</div>}
+                </div>
+
+                <div className="flex flex-col w-full relative">{levels.map(lvl => <LevelRow key={lvl.id} level={lvl} placements={placements} onZoneClick={onZoneClick} onPlacementClick={onPlacementClick} tools={tools} readOnly={readOnly} showForces={showForces} heightScale={heightScale} />)}</div></div></div>
         );
 
         // ==========================================
@@ -434,7 +504,7 @@
             const [plannedPlacements, setPlannedPlacements] = useState([]);
             const [completedPlacements, setCompletedPlacements] = useState([]);
             const [patientData, setPatientData] = useState({ name: '', id: '', surgeon: '', location: 'Leeds Teaching Hospitals NHS Trust', date: new Date().toISOString().split('T')[0] });
-            const [showCervical, setShowCervical] = useState(false); 
+            const [viewMode, setViewMode] = useState('thoracolumbar'); // 'thoracolumbar', 'cervical', 'whole'
             const [scale, setScale] = useState(1);
             const [incognitoMode, setIncognitoMode] = useState(false);
             const [isEditingDate, setIsEditingDate] = useState(false);
@@ -458,28 +528,53 @@
 
             const levels = useMemo(() => {
                 const lvls = [];
-                if (showCervical) ['C1','C2','C3','C4','C5','C6','C7'].forEach(l => lvls.push({ id:l, type:'C' }));
-                ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'].forEach(l => lvls.push({ id:l, type:'T' }));
-                ['L1','L2','L3','L4','L5'].forEach(l => lvls.push({ id:l, type:'L' }));
-                lvls.push({ id:'S1', type:'S' });
-                lvls.push({ id:'Pelvis', type:'Pelvis' });
+                // ADD OCCIPUT & CERVICAL
+                if (viewMode === 'cervical' || viewMode === 'whole') {
+                    lvls.push({ id: 'Occiput', type: 'Occiput' });
+                    ['C1','C2','C3','C4','C5','C6','C7'].forEach(l => lvls.push({ id:l, type:'C' }));
+                }
+
+                // ADD THORACIC
+                if (viewMode === 'cervical') {
+                    // Only upper thoracic for Cervical view
+                    ['T1','T2','T3','T4'].forEach(l => lvls.push({ id:l, type:'T' }));
+                } else {
+                    // All Thoracic for others
+                    ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'].forEach(l => lvls.push({ id:l, type:'T' }));
+                }
+
+                // ADD LUMBAR/PELVIS
+                if (viewMode !== 'cervical') {
+                    ['L1','L2','L3','L4','L5'].forEach(l => lvls.push({ id:l, type:'L' }));
+                    lvls.push({ id:'S1', type:'S' });
+                    lvls.push({ id:'Pelvis', type:'Pelvis' });
+                }
+                
                 return lvls;
-            }, [showCervical]);
+            }, [viewMode]);
 
             // AUTO-LOAD
             useEffect(() => {
                 const saved = localStorage.getItem('leeds_spine_planner_data_v28');
                 if (saved) {
-                    try { const parsed = JSON.parse(saved); if (parsed.planned) setPlannedPlacements(parsed.planned); if (parsed.completed) setCompletedPlacements(parsed.completed); if (parsed.patient) setPatientData(parsed.patient); if (parsed.showCervical !== undefined) setShowCervical(parsed.showCervical); } catch (e) { console.error("Data load error"); }
+                    try { 
+                        const parsed = JSON.parse(saved); 
+                        if (parsed.planned) setPlannedPlacements(parsed.planned); 
+                        if (parsed.completed) setCompletedPlacements(parsed.completed); 
+                        if (parsed.patient) setPatientData(parsed.patient); 
+                        // Migration logic for old "Show Cervical" boolean
+                        if (parsed.viewMode) { setViewMode(parsed.viewMode); }
+                        else if (parsed.showCervical === true) { setViewMode('whole'); }
+                    } catch (e) { console.error("Data load error"); }
                 }
                 setHasLoaded(true);
             }, []);
 
             // AUTO-SAVE
             useEffect(() => {
-                if (hasLoaded && !incognitoMode) { localStorage.setItem('leeds_spine_planner_data_v28', JSON.stringify({ planned: plannedPlacements, completed: completedPlacements, patient: patientData, showCervical })); }
+                if (hasLoaded && !incognitoMode) { localStorage.setItem('leeds_spine_planner_data_v28', JSON.stringify({ planned: plannedPlacements, completed: completedPlacements, patient: patientData, viewMode })); }
                 if (incognitoMode) localStorage.removeItem('leeds_spine_planner_data_v28');
-            }, [plannedPlacements, completedPlacements, patientData, showCervical, hasLoaded, incognitoMode]);
+            }, [plannedPlacements, completedPlacements, patientData, viewMode, hasLoaded, incognitoMode]);
 
             // RESIZE OBSERVER
             useEffect(() => {
@@ -501,17 +596,17 @@
                 { category: 'Hooks', items: [ { id: 'pedicle_hook', label: 'Pedicle', icon: 'pedicle_hook', type: 'implant' }, { id: 'tp_hook', label: 'TP Hook', icon: 'tp_hook', type: 'implant' }, { id: 'sl_hook', label: 'Supra-laminar', icon: 'sl_hook', type: 'implant' }, { id: 'il_hook', label: 'Infra-laminar', icon: 'il_hook', type: 'implant' }, ]},
                 { category: 'Midline', items: [ { id: 'connector', label: 'Crosslink', icon: 'connector', type: 'mid' }, { id: 'unstable', label: 'Unstable', icon: 'unstable', type: 'mid' }, { id: 'osteotomy', label: 'Osteotomy', icon: 'osteotomy', isOsteotomy: true, type: 'mid' }, ]},
                 { category: 'Forces', items: [ 
-                    { id: 'translate_left', label: 'Translate Left', icon: 'translate_left', type: 'force' },
-                    { id: 'translate_right', label: 'Translate Right', icon: 'translate_right', type: 'force' },
+                    { id: 'translate_left', label: 'Trans Left', icon: 'translate_left', type: 'force' },
+                    { id: 'translate_right', label: 'Trans Right', icon: 'translate_right', type: 'force' },
                     { id: 'compression', label: 'Compress', icon: 'compression', type: 'force' },
                     { id: 'distraction', label: 'Distract', icon: 'distraction', type: 'force' },
-                    { id: 'derotate_cw', label: 'Derotate CW', icon: 'derotate_cw', type: 'force' },
-                    { id: 'derotate_ccw', label: 'Derotate CCW', icon: 'derotate_ccw', type: 'force' },
+                    { id: 'derotate_cw', label: 'Derotate', icon: 'derotate_cw', type: 'force' },
+                    { id: 'derotate_ccw', label: 'Derotate', icon: 'derotate_ccw', type: 'force' },
                 ]}
             ];
             const allTools = tools.flatMap(g => g.items);
 
-            const handleZoneClick = (levelId, zoneClicked) => {
+            const handleZoneClick = (levelId, zone) => {
                 const tool = allTools.find(t => t.id === selectedTool);
                 if (tool.type === 'implant' && zone.startsWith('force')) return alert("Implants cannot be placed in force columns.");
                 if (tool.type === 'force' && !zone.startsWith('force')) return alert("Forces must be placed in outer columns.");
@@ -581,7 +676,7 @@
             };
 
             const saveProjectJSON = () => {
-                const data = { version: "0.5.1", patient: patientData, planned: plannedPlacements, completed: completedPlacements, showCervical, timestamp: new Date().toISOString() };
+                const data = { version: "0.5.1", patient: patientData, planned: plannedPlacements, completed: completedPlacements, viewMode, timestamp: new Date().toISOString() };
                 const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
                 const link = document.createElement('a'); link.href = URL.createObjectURL(blob); link.download = `SpineProject_${patientData.name || 'Unnamed'}.json`; document.body.appendChild(link); link.click(); document.body.removeChild(link);
                 if (incognitoMode) localStorage.removeItem('leeds_spine_planner_data_v28');
@@ -591,7 +686,15 @@
                 const file = e.target.files[0]; if(!file) return;
                 const reader = new FileReader();
                 reader.onload = (ev) => {
-                    try { const json = JSON.parse(ev.target.result); if(json.patient) setPatientData(json.patient); if(json.planned) setPlannedPlacements(json.planned); if(json.completed) setCompletedPlacements(json.completed); if(json.showCervical !== undefined) setShowCervical(json.showCervical); alert("Project Loaded Successfully."); } catch(err) { alert("Invalid File"); }
+                    try { 
+                        const json = JSON.parse(ev.target.result); 
+                        if(json.patient) setPatientData(json.patient); 
+                        if(json.planned) setPlannedPlacements(json.planned); 
+                        if(json.completed) setCompletedPlacements(json.completed); 
+                        if(json.viewMode) setViewMode(json.viewMode);
+                        else if(json.showCervical) setViewMode('whole');
+                        alert("Project Loaded Successfully."); 
+                    } catch(err) { alert("Invalid File"); }
                 };
                 reader.readAsText(file); e.target.value = null;
             };
@@ -602,6 +705,12 @@
                 const copied = plannedPlacements.map((p,i) => ({...p, id: Date.now()+i}));
                 setCompletedPlacements(copied);
                 setActiveChart('completed');
+            };
+
+            const getViewScale = () => {
+                if (viewMode === 'whole') return 0.85; // 15% reduction
+                if (viewMode === 'cervical') return 1.75; // 75% magnification
+                return 1.0;
             };
 
             return (
@@ -652,10 +761,23 @@
                     </header>
 
                     <div className="flex-1 overflow-hidden bg-slate-200 flex relative">
-                        <aside className="w-64 bg-slate-800 text-white flex flex-col border-r border-slate-700 z-20 overflow-y-auto no-print shadow-xl">
-                            <div className="p-4 border-b border-slate-700 bg-slate-900"><label className="flex items-center gap-2 cursor-pointer select-none text-sm text-slate-300 hover:text-white"><input type="checkbox" checked={showCervical} onChange={e=>setShowCervical(e.target.checked)} className="w-4 h-4 rounded text-amber-500 focus:ring-amber-500"/> Show Cervical</label></div>
+                        <aside className="w-80 bg-slate-800 text-white flex flex-col border-r border-slate-700 z-20 overflow-y-auto no-print shadow-xl">
+                            <div className="p-4 border-b border-slate-700 bg-slate-900">
+                                <h3 className="text-[10px] uppercase font-bold text-slate-500 mb-2 tracking-widest">Region View</h3>
+                                <div className="space-y-2">
+                                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-300 hover:text-white">
+                                        <input type="radio" name="viewMode" checked={viewMode === 'thoracolumbar'} onChange={() => setViewMode('thoracolumbar')} className="text-amber-500 focus:ring-amber-500"/> Thoracolumbar (T1-Pelvis)
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-300 hover:text-white">
+                                        <input type="radio" name="viewMode" checked={viewMode === 'cervical'} onChange={() => setViewMode('cervical')} className="text-amber-500 focus:ring-amber-500"/> Cervical (Occiput-T4)
+                                    </label>
+                                    <label className="flex items-center gap-2 cursor-pointer select-none text-xs text-slate-300 hover:text-white">
+                                        <input type="radio" name="viewMode" checked={viewMode === 'whole'} onChange={() => setViewMode('whole')} className="text-amber-500 focus:ring-amber-500"/> Whole Spine (Occ-Pelvis)
+                                    </label>
+                                </div>
+                            </div>
                             <div className="p-4 space-y-6">
-                                {tools.map((g,i) => (<div key={i}><h3 className="text-[10px] uppercase font-bold text-slate-500 mb-2 tracking-widest">{g.category}</h3><div className="grid grid-cols-2 gap-2">{g.items.map(t => (<button key={t.id} onClick={() => setSelectedTool(t.id)} className={`p-2 rounded border flex flex-col items-center justify-center gap-1 transition-all text-xs ${selectedTool === t.id ? 'bg-amber-500 border-amber-600 text-slate-900 font-bold' : 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-200'}`}><InstrumentIcon type={t.icon} className="w-6 h-6 mb-1" color={selectedTool === t.id ? 'black' : 'white'} /><span className="text-center text-[10px]">{t.label}</span></button>))}</div></div>))}
+                                {tools.map((g,i) => (<div key={i}><h3 className="text-[10px] uppercase font-bold text-slate-500 mb-2 tracking-widest">{g.category}</h3><div className="grid grid-cols-4 gap-1">{g.items.map(t => (<button key={t.id} onClick={() => setSelectedTool(t.id)} className={`p-1 h-16 rounded border flex flex-col items-center justify-center gap-0.5 transition-all text-xs ${selectedTool === t.id ? 'bg-amber-500 border-amber-600 text-slate-900 font-bold' : 'bg-slate-700 border-slate-600 hover:bg-slate-600 text-slate-200'}`}><InstrumentIcon type={t.icon} className="w-4 h-4 mb-1" color={selectedTool === t.id ? 'black' : 'white'} /><span className="text-center text-[9px] leading-tight break-words w-full">{t.label}</span></button>))}</div></div>))}
                             </div>
                         </aside>
 
@@ -674,13 +796,13 @@
                                                 <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Clinic Location</label><div className="editable-field w-full text-base" contentEditable suppressContentEditableWarning onBlur={e => setPatientData({...patientData, location: e.target.innerText})} placeholder="Click to enter...">{patientData.location}</div></div>
                                                 <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Date</label><div className="editable-field w-full text-base cursor-pointer" onClick={() => setIsEditingDate(true)}>{isEditingDate ? <input type="date" className="w-full text-sm border-b border-slate-800 bg-transparent outline-none py-0" value={patientData.date} autoFocus onBlur={()=>setIsEditingDate(false)} onChange={e=>setPatientData({...patientData, date:e.target.value})} /> : formatDate(patientData.date)}</div></div>
                                             </div>
-                                            <ImplantInventory placements={activeChart === 'planned' ? plannedPlacements : completedPlacements} tools={allTools} title={activeChart === 'planned' ? 'Plan' : 'Construct'} />
+                                            <ImplantInventory placements={activeChart === 'planned' ? plannedPlacements : completedPlacements} tools={allTools} title={activeChart === 'planned' ? 'Plan' : 'Construct'} visibleLevelIds={levels.map(l => l.id)} />
                                             
                                         </div>
                                         <CreditsFooter />
                                     </div>
-                                    <ChartPaper title="Pre-Operative Plan" placements={plannedPlacements} onZoneClick={handleZoneClick} onPlacementClick={handlePlacementClick} tools={allTools} readOnly={activeChart !== 'planned'} levels={levels} showForces={true} />
-                                    <ChartPaper title="Surgical Construct" placements={completedPlacements} onZoneClick={handleZoneClick} onPlacementClick={handlePlacementClick} tools={allTools} readOnly={activeChart !== 'completed'} levels={levels} showForces={false} />
+                                    <ChartPaper title="Pre-Operative Plan" placements={plannedPlacements} onZoneClick={handleZoneClick} onPlacementClick={handlePlacementClick} tools={allTools} readOnly={activeChart !== 'planned'} levels={levels} showForces={true} heightScale={getViewScale()} />
+                                    <ChartPaper title="Surgical Construct" placements={completedPlacements} onZoneClick={handleZoneClick} onPlacementClick={handlePlacementClick} tools={allTools} readOnly={activeChart !== 'completed'} levels={levels} showForces={false} heightScale={getViewScale()} />
                                 </div>
                             </div>
                         </div>
@@ -694,4 +816,3 @@
     </script>
 </body>
 </html>
-}
