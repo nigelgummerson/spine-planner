@@ -26,8 +26,8 @@ spine-planner-old-redirect/
 
 ## Cross-References
 
-- **Active planner:** `spine-surgery/planning/spine-planner/` (repo: `nigelgummerson/spine-planner-dev`)
-- **Landing page:** `spine-surgery/planning/skeletalsurgery-landing/`
+- **Active planner:** `products/spine-planner/` (repo: `nigelgummerson/spine-planner-dev`)
+- **Landing page:** `products/skeletalsurgery-landing/`
 
 ## Session History
 

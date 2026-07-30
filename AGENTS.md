@@ -7,7 +7,7 @@ Minimal redirect stub. Publishes a single `index.html` that issues a meta-refres
 ## Structure
 
 ```
-spine-surgery/planning/spine-planner-old-redirect/
+products/spine-planner-old-redirect/
 ├── index.html      # <meta http-equiv="refresh" content="0;url=https://plan.skeletalsurgery.com/spine/">
 ├── AGENTS.md       # This file
 ├── CLAUDE.md       # Session history
