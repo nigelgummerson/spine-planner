@@ -31,3 +31,13 @@ GitHub Pages from `nigelgummerson/spine-planner` (repo name retained for histori
 - **AGENTS.md** — this file.
 - **CLAUDE.md** — session history.
 - Read `CLAUDE.md` for current state before making changes.
+
+## Done when
+
+type: area
+status: draft
+review: annually, while the old URL may be bookmarked
+
+<!-- Drafted 2026-07-30 from this project's own PROJECT-GUIDE.md entry.
+     Correct it and delete the `status: draft` line when you next work here.
+     Format: tools/project-index/STATE-FORMAT.md -->
